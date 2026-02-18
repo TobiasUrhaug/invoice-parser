@@ -1,0 +1,9 @@
+tests/
+*.md
+__pycache__
+**/__pycache__
+.env*
+*.gguf
+models/
+.venv/
+.git/
