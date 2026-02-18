@@ -18,8 +18,9 @@ async def test_extract_with_empty_api_key_returns_401(client: AsyncClient) -> No
 
 
 async def test_extract_with_correct_api_key_passes_auth(client: AsyncClient) -> None:
+    # Auth passes; 422 is expected because no file was uploaded.
     response = await client.post(
         "/api/v1/extract",
         headers={"X-API-Key": TEST_API_KEY},
     )
-    assert response.status_code == 200
+    assert response.status_code == 422
