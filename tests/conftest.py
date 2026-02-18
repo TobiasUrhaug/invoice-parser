@@ -1,4 +1,5 @@
 from collections.abc import AsyncGenerator, Generator
+from unittest.mock import patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -55,8 +56,11 @@ def mock_settings(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None
 async def client(monkeypatch: pytest.MonkeyPatch) -> AsyncGenerator[AsyncClient, None]:
     monkeypatch.setenv("API_KEY", TEST_API_KEY)
     get_settings.cache_clear()
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
-        yield ac
+    with patch("app.services.llm_extractor.init_model"):
+        app.state.model_loaded = True
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as ac:
+            yield ac
+    app.state.model_loaded = False
     get_settings.cache_clear()
