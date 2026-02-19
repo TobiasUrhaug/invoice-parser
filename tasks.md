@@ -327,7 +327,7 @@ In `app/main.py`, register exception handlers for:
 
 ## Phase 5 — Integration Testing
 
-### [ ] T-17 — Create PDF test fixtures
+### [x] T-17 — Create PDF test fixtures
 
 **Description:**
 Collect or generate a small set of PDF invoices for use as test fixtures in `tests/fixtures/`. The set should include:
