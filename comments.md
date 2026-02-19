@@ -316,3 +316,37 @@ The magic bytes check is the defence against misnamed files (e.g. a JPEG renamed
 Move `make_pdf_bytes` to a `tests/utils.py` (or `tests/helpers.py`) module and import it from there in both `conftest.py` and `test_api.py`.
 
 **Addressed:** Moved `make_pdf_bytes` to `tests/utils.py` and updated all callers (`test_api.py`, `test_extract_endpoint.py`, `test_pdf_extractor.py`, `test_pdf_validation.py`) to import from `tests.utils`. Removed the function and its re-export from `conftest.py`.
+
+---
+
+## README claims model downloads on first request — it downloads at startup
+
+**File:** `README.md`, line 49
+**Severity:** minor
+
+The README states: "On first request, the LLM model will be downloaded automatically if not already cached." In reality, `app/main.py` downloads and loads the model during the FastAPI lifespan startup (lines 27–34), before any request is served. Requests arriving while the model is still loading receive a 503.
+
+This is misleading for operators: they may expect the first request to be slow (due to download) rather than expecting the service to be unavailable (503) during startup. Update the sentence to reflect that the model downloads at startup, e.g.: "On startup, the LLM model will be downloaded automatically if not already cached."
+
+**Addressed:** Changed "On first request" to "On startup" in README.md line 49.
+
+---
+
+## `llama-cpp-python` build requirements not documented
+
+**File:** `README.md`
+**Severity:** minor
+
+T-09 specifies: "`llama-cpp-python` must be installed with `CMAKE_ARGS="-DGGML_BLAS=OFF"` for pure CPU use. Document this in `pyproject.toml` or `README.md`." The README does not mention this requirement. A developer running `uv sync` on a machine without cmake or with a GPU-enabled build configuration may encounter build failures or unexpected behaviour with no guidance on how to resolve them.
+
+Add a note in the Prerequisites or Installation section documenting the required `CMAKE_ARGS` for CPU-only builds.
+
+**Addressed:** Added a `CMAKE_ARGS="-DGGML_BLAS=OFF"` note with example command to the Prerequisites section of README.md.
+
+---
+
+## Tooling results
+
+- `uv run ruff check .` — all checks passed
+- `uv run ruff format --check .` — 29 files already formatted
+- `uv run mypy app/` — success, no issues found in 15 source files
