@@ -38,6 +38,8 @@ For each comment:
 
 Once all comments are resolved, stop and ask for confirmation before creating a commit. After committing, clear `comments.md`.
 
+The commit message must describe the feature or behaviour implemented — not the review process. The reviewer's feedback is part of development; the commit represents the completed work.
+
 ### 5. Repeat
 
 Return to step 1 for the next task.
