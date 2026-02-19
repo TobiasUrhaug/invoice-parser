@@ -115,16 +115,7 @@ class InvoiceValidator:
             for error in exc.errors():
                 if error["loc"]:
                     cleaned[str(error["loc"][0])] = None
-            try:
-                return InvoiceResult.model_validate(cleaned)
-            except ValidationError:
-                return InvoiceResult(
-                    invoiceDate=None,
-                    invoiceReference=None,
-                    netAmount=None,
-                    vatAmount=None,
-                    totalAmount=None,
-                )
+            return InvoiceResult.model_validate(cleaned)
 
     def _check_totals(self, result: InvoiceResult) -> None:
         if result.netAmount and result.vatAmount and result.totalAmount:

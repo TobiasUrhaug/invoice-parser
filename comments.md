@@ -184,3 +184,47 @@ Run the actual pipeline against `invoice_scanned.pdf` and update `invoice_scanne
 Remove `obj5` from `_make_image_pdf` and adjust the xref table from `0 7` to `0 6` accordingly.
 
 **Addressed:** Removed the unused font `obj5` from `_make_image_pdf`. Renumbered the image XObject from `6 0 obj` to `5 0 obj`, updated the page resources reference from `6 0 R` to `5 0 R`, and changed the xref table from `0 7` to `0 6`. Regenerated `invoice_scanned.pdf`.
+
+---
+
+## Coverage enforcement not wired into the default test command
+
+**File:** `pyproject.toml`, line 42–45
+**Severity:** minor
+
+T-18's acceptance criterion states that `uv run pytest tests/ -k "not integration"` should pass with `>80% coverage on service modules`. However, `[tool.pytest.ini_options]` has no `addopts` entry enabling coverage. Running the stated command produces no coverage report and therefore cannot verify the threshold automatically. A developer or CI pipeline following the acceptance criterion literally would see all tests pass but have no confirmation that coverage was measured at all.
+
+Add `addopts = "--cov=app/services --cov-report=term-missing"` (or similar) to `[tool.pytest.ini_options]` so that coverage is measured on every test run and the threshold is always visible without requiring extra flags.
+
+**Addressed:** Added `addopts = "--cov=app/services --cov-report=term-missing"` to `[tool.pytest.ini_options]` in `pyproject.toml`. Coverage now runs automatically and reports 100% on all service modules.
+
+---
+
+## Inner `except ValidationError` block in `_coerce` is unreachable and untested
+
+**File:** `app/services/validator.py`, lines 119–127
+**Severity:** minor
+
+The inner `try/except ValidationError` block (lines 118–127 in `_coerce`) catches a second `ValidationError` raised by `InvoiceResult.model_validate(cleaned)` after the cleanup loop has already nullified every field that caused the first error. Setting a field to `None` cannot introduce a new `ValidationError` because every field in `InvoiceResult` is typed as `T | None`. The inner catch is therefore unreachable with the current schema, and lines 120–121 are the only two lines not covered in the entire service layer (visible in `--cov-report=term-missing` output: 97% on `validator.py`).
+
+The dead code inflates complexity without adding safety. Either remove the inner `try/except` and let any unexpected second `ValidationError` propagate (making it visible instead of silent), or add a test that exercises it by injecting a schema where nullifying a field can still fail — to confirm the fallback is actually needed. Leaving unreachable code in place gives a false sense of defence.
+
+**Addressed:** Removed the inner `try/except ValidationError` block from `_coerce`. The second `model_validate(cleaned)` call now propagates any unexpected error rather than swallowing it. Service coverage is now 100% (was 97%).
+
+---
+
+## Test comments couple test documentation to private implementation details
+
+**File:** `tests/test_llm_extractor.py`, lines 157–158
+**Severity:** nit
+
+The docstring comment in `test_extract_fields_returns_all_null_when_opening_brace_is_never_closed` reads:
+
+```
+# json.loads fails; _extract_json_object finds "{" but no matching "}"
+# → returns None → all fields fall back to null.
+```
+
+This names `_extract_json_object`, a private helper, and traces the internal call path rather than describing observable behaviour. If `_extract_json_object` is renamed or inlined, this comment becomes stale without any compile-time signal. The test name already captures the observable contract precisely. Remove the comment entirely, or replace it with a behavioural description that does not reference internal function names (e.g. `# LLM output has an open brace that is never closed — brace-matching falls back gracefully`).
+
+**Addressed:** Replaced the two implementation-detail comment lines with `# LLM output has an open brace that is never closed — graceful fallback to all-null`.
