@@ -1,0 +1,130 @@
+## JsonFormatter silently drops exception tracebacks
+
+**File:** `app/core/logging.py`, line 35–46
+**Severity:** major
+
+`JsonFormatter.format()` never renders `exc_info` into the JSON output. The `exc_info` key is in `_EXTRA_SKIP`, so it is filtered out of the `__dict__` loop, and the formatter never calls `self.formatException(record.exc_info)` to convert the traceback to a string.
+
+The direct consequence is in `app/main.py`: `unhandled_exception_handler` uses `logger.exception(...)`, which sets `exc_info` on the log record precisely to capture the full traceback. With the current formatter that traceback is silently swallowed. An operator debugging a production 500 will see only the message `"Unhandled exception on POST /..."` with no stack trace.
+
+Fix by checking `record.exc_info` after building the base payload and, if present, appending a rendered traceback string (e.g. via `self.formatException(record.exc_info)`) under a key such as `"exception"`.
+
+**Addressed:** Added `if record.exc_info: payload["exception"] = self.formatException(record.exc_info)` to `JsonFormatter.format()`. Added `test_json_formatter_renders_exception_info` in `test_logging.py` to verify the traceback is rendered under the `"exception"` key.
+
+---
+
+## Error paths emit no structured log
+
+**File:** `app/api/v1/router.py`, line 48–54
+**Severity:** major
+
+The `logger.info(...)` call only executes on the happy path, after a successful pipeline run. If `FileTooLargeError` or `InvalidMagicBytesError` is raised and converted to an HTTPException, the request completes with a 400 or 413 but leaves no structured log entry — no `request_id`, no `duration_ms`, no `status_code`, nothing. A sustained wave of malformed requests would be invisible in structured logs.
+
+Fix by moving the timing start and request-ID generation to before the validation block, and emitting a log record in all branches (or in a `finally` block) that includes the resolved status code.
+
+**Addressed:** Restructured the `extract` endpoint to track `status_code` (defaulting to 500, set to 400/413/200 in each branch) and moved `logger.info` into a `finally` block so it always fires with the resolved `status_code`, `request_id`, and `duration_ms`. Added `test_error_path_emits_structured_log` in `test_extract_endpoint.py` to verify logs are emitted on rejected requests.
+
+---
+
+## LLM and validator error paths in Pipeline are untested
+
+**File:** `tests/test_pipeline.py`
+**Severity:** major
+
+`test_pipeline.py` covers only three paths: text extraction, OCR extraction, and a `ValueError` raised by `SmartPDFExtractor`. There are no tests for:
+
+- `llm.extract_fields()` raising an exception (e.g., a model crash or timeout). The pipeline would propagate this uncaught, giving a 500 with no domain context.
+- `validator.validate()` raising an unexpected exception (unlikely with the current implementation's defensive fallbacks, but still an untested assumption).
+
+These are real failure modes in production. Add tests that confirm the pipeline propagates (or wraps) these errors in a predictable way, consistent with how the router's exception handlers expect to handle them.
+
+**Addressed:** Added `test_pipeline_llm_error_propagates` and `test_pipeline_validator_error_propagates` to `test_pipeline.py`. Both confirm the pipeline propagates exceptions uncaught.
+
+---
+
+## `request_id` is logged but never returned to the caller
+
+**File:** `app/api/v1/router.py`, line 35
+**Severity:** minor
+
+A UUID `request_id` is generated per request and included in the structured log. Clients have no way to discover it. When a user reports a failed request, they cannot provide a `request_id` for operators to look up in the log aggregator.
+
+Return the ID in a response header (e.g. `X-Request-Id`) so that clients can surface it in bug reports.
+
+**Addressed:** Added `headers={"X-Request-Id": request_id}` to the success `JSONResponse`. Added `test_extract_returns_request_id_header` to `test_extract_endpoint.py` to verify the header is present.
+
+---
+
+## `caplog` fixture type annotation is wrong in test
+
+**File:** `tests/test_extract_endpoint.py`, line 73
+**Severity:** minor
+
+`test_extract_emits_structured_log(client: AsyncClient, caplog: logging.LogRecord)` annotates `caplog` as `logging.LogRecord`. The pytest fixture is `pytest.LogCaptureFixture`. The wrong annotation is misleading and would be caught by mypy if tests were included in its scope.
+
+Change the annotation to `pytest.LogCaptureFixture`.
+
+**Addressed:** Updated the annotation on both `test_extract_emits_structured_log` and the new `test_error_path_emits_structured_log` to use `pytest.LogCaptureFixture`. Added `import pytest` at the top of `test_extract_endpoint.py`.
+
+---
+
+## Null field serialization not asserted — only key presence is checked
+
+**File:** `tests/test_extract_endpoint.py`, line 48–70
+**Severity:** minor
+
+`test_extract_all_five_keys_always_present` only asserts `key in body` for a result where all five fields are `None`. It does not assert that those keys map to JSON `null` (i.e. `body[key] is None`). A response that omits the keys or maps them to empty strings or `0` would pass this test.
+
+The contract being tested is "all five keys are always present, with `null` for missing values". Assert `body[key] is None` for each key in the null-result scenario to make the contract explicit.
+
+**Addressed:** Added `assert body[key] is None` inside the loop in `test_extract_all_five_keys_always_present`.
+
+---
+
+## `configure_logging` destroys pytest's log-capture handler
+
+**File:** `app/core/logging.py`, line 53
+**Severity:** minor
+
+`root.handlers = [handler]` replaces all existing handlers on the root logger. In tests, the `client` fixture triggers the app lifespan, which calls `configure_logging`, which removes pytest's internal `LogCaptureHandler`. Subsequent uses of `caplog` in the same test may capture nothing.
+
+`test_extract_emits_structured_log` relies on `caplog` working correctly after the client fixture has already run the lifespan. Whether it passes in practice depends on pytest's implementation details around handler re-installation; it is fragile either way.
+
+Fix by appending the JSON handler rather than replacing all handlers, or by using `logging.config.dictConfig` with `incremental` mode in tests.
+
+**Addressed:** Changed `root.handlers = [handler]` to `root.addHandler(handler)` in `configure_logging`.
+
+---
+
+## `MagicMock` import inside fixture body
+
+**File:** `tests/conftest.py`, line 57
+**Severity:** nit
+
+`from unittest.mock import MagicMock` is imported inside the `client` fixture function. Top-level imports are the convention in Python; lazy imports inside functions are reserved for cases where the import is conditional or circular. Move this to the top of the file alongside the other imports.
+
+**Addressed:** Moved `from unittest.mock import MagicMock` to the top-level imports in `conftest.py` and removed the inline import from inside the `client` fixture.
+
+---
+
+## Two test functions spin up the same app and hit the same endpoint
+
+**File:** `tests/test_error_handling.py`, lines 21–38
+**Severity:** nit
+
+`test_unhandled_exception_returns_500_with_error_envelope` and `test_unhandled_exception_does_not_return_fastapi_default_shape` each call `_make_app_with_error_route()`, construct a `TestClient`, and issue an identical `GET /boom` request. They differ only in their assertions. Consider merging them into a single test that asserts both the status code and the response shape, or extracting the response into a shared fixture.
+
+**Addressed:** Merged the two tests into `test_unhandled_exception_returns_500_error_envelope` which asserts status code, presence of `"error"`, absence of `"detail"`, and absence of the internal exception message.
+
+---
+
+## `_INVOICE_FIELDS` in router duplicates schema field names
+
+**File:** `app/api/v1/router.py`, lines 22–28
+**Severity:** nit
+
+The tuple `_INVOICE_FIELDS` hardcodes the same five field names that already live in `InvoiceResult`. `_FIVE_KEYS` in `llm_extractor.py` does the same. If `InvoiceResult` ever gains or loses a field, all three must be updated manually with no compile-time enforcement.
+
+Derive the field names from the schema directly — e.g. `tuple(InvoiceResult.model_fields.keys())` — so there is a single source of truth.
+
+**Addressed:** Replaced the hardcoded `_INVOICE_FIELDS` tuple in `router.py` with `tuple(InvoiceResult.model_fields.keys())`.

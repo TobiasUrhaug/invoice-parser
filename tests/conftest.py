@@ -1,5 +1,5 @@
 from collections.abc import AsyncGenerator, Generator
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -58,6 +58,7 @@ async def client(monkeypatch: pytest.MonkeyPatch) -> AsyncGenerator[AsyncClient,
     get_settings.cache_clear()
     with patch("app.services.llm_extractor.init_model"):
         app.state.model_loaded = True
+        app.state.llm = MagicMock()
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as ac:

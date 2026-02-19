@@ -252,7 +252,7 @@ Create `app/services/validator.py`. Implement `InvoiceValidator` with method `va
 
 ## Phase 4 — API Layer
 
-### [ ] T-13 — Implement authentication middleware
+### [x] T-13 — Implement authentication middleware
 
 **Description:**
 Create `app/core/security.py`. Implement a FastAPI dependency `verify_api_key(x_api_key: str = Header(...)) -> None` that compares the provided key against `settings.API_KEY` using `hmac.compare_digest` (constant-time). Raise `HTTPException(status_code=401)` on mismatch or missing header.
@@ -269,7 +269,7 @@ Apply this dependency globally to all routes under `/api/v1`.
 
 ---
 
-### [ ] T-14 — Implement extraction endpoint
+### [x] T-14 — Implement extraction endpoint
 
 **Description:**
 In `app/api/v1/router.py`, implement `POST /api/v1/extract`:
@@ -291,7 +291,7 @@ Add structured logging before and after the pipeline call (see spec.md section 7
 
 ---
 
-### [ ] T-15 — Implement structured logging
+### [x] T-15 — Implement structured logging
 
 **Description:**
 Create `app/core/logging.py`. Configure Python's `logging` module to emit JSON-formatted lines to stdout. Each log record for a request should include the fields from spec.md section 7. Use a custom `logging.Formatter` that serialises the record to JSON.
@@ -307,7 +307,7 @@ Configure the logger in the FastAPI lifespan handler. All application code shoul
 
 ---
 
-### [ ] T-16 — Implement global error handling
+### [x] T-16 — Implement global error handling
 
 **Description:**
 In `app/main.py`, register exception handlers for:
