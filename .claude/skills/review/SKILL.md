@@ -1,4 +1,7 @@
-Assume the reviewer role defined in `.claude/profiles/reviewer.md` and review the uncommitted code.
+---
+name: review
+description: Assume the reviewer role defined in `.claude/profiles/reviewer.md` and review the uncommitted code.
+---
 
 1. Run `git diff HEAD` and `git status` to identify all uncommitted changes (staged and unstaged).
 2. Read the changed files to understand what was modified.

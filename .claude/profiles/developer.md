@@ -43,8 +43,9 @@ For each comment:
 - Fix the issue as described.
 - Follow the same TDD cycle: if the fix requires new or changed tests, write the test first.
 - Do not make unrelated changes while addressing a comment.
+- After fixing, add `**Addressed:** <brief note on what was done>` to that comment block. Do not remove or modify the original comment.
 
-Once all comments are resolved, stop and ask for confirmation before creating a commit. After committing, clear `comments.md`.
+Once all comments are resolved, stop and ask for confirmation before creating a commit. Leave `comments.md` as-is after committing — it is the review history for that cycle.
 
 The commit message must describe the feature or behaviour implemented — not the review process. The reviewer's feedback is part of development; the commit represents the completed work.
 

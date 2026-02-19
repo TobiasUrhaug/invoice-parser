@@ -40,7 +40,9 @@ Before looking at implementation quality, evaluate test quality:
 
 ### 4. Write feedback
 
-Write all findings to `comments.md`. For each issue:
+If `comments.md` already contains addressed comments from a previous cycle, verify each one before writing new findings — confirm the fix actually resolves the issue. Do not modify addressed comments.
+
+Write new findings to `comments.md` as additional comment blocks. For each new issue:
 
 - Cite the file and line number.
 - Explain what is wrong and why it matters.
