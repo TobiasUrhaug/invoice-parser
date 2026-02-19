@@ -1,6 +1,9 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
+from app.core.config import get_settings
 from app.services.llm_extractor import init_model
 
 
@@ -118,3 +121,23 @@ def test_init_model_returns_llama_instance(tmp_path: Path) -> None:
             filename="model.gguf",
         )
     assert result is mock_llama
+
+
+async def test_lifespan_stores_llm_extractor_in_app_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.main import app, lifespan
+    from app.services.llm_extractor import LLMExtractor
+
+    monkeypatch.setenv("API_KEY", "test-key")
+    get_settings.cache_clear()
+    try:
+        mock_llama = MagicMock()
+        with (
+            patch("app.main.init_model", return_value=mock_llama),
+            patch("app.main.configure_logging"),
+        ):
+            async with lifespan(app):
+                assert isinstance(app.state.llm, LLMExtractor)
+    finally:
+        get_settings.cache_clear()

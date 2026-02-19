@@ -12,7 +12,7 @@ from app.services.pdf_extractor import (
     _is_text_based,
     validate_pdf,
 )
-from tests.conftest import make_pdf_bytes
+from tests.utils import make_pdf_bytes
 
 # --- PlumberExtractor ---
 

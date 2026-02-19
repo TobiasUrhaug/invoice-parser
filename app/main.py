@@ -10,7 +10,7 @@ from starlette.responses import Response
 from app.api.v1.router import router
 from app.core.config import get_settings
 from app.core.logging import configure_logging
-from app.services.llm_extractor import init_model
+from app.services.llm_extractor import LLMExtractor, init_model
 
 logger = logging.getLogger(__name__)
 
@@ -21,12 +21,14 @@ async def lifespan(application: FastAPI) -> AsyncGenerator[None, None]:
     settings = get_settings()
     configure_logging(settings.log_level)
     try:
-        application.state.llm = init_model(
-            model_dir=settings.model_dir,
-            repo_id=settings.model_repo_id,
-            filename=settings.model_filename,
-            n_ctx=settings.model_n_ctx,
-            n_gpu_layers=settings.model_n_gpu_layers,
+        application.state.llm = LLMExtractor(
+            init_model(
+                model_dir=settings.model_dir,
+                repo_id=settings.model_repo_id,
+                filename=settings.model_filename,
+                n_ctx=settings.model_n_ctx,
+                n_gpu_layers=settings.model_n_gpu_layers,
+            )
         )
         application.state.model_loaded = True
     except Exception:

@@ -228,3 +228,91 @@ The docstring comment in `test_extract_fields_returns_all_null_when_opening_brac
 This names `_extract_json_object`, a private helper, and traces the internal call path rather than describing observable behaviour. If `_extract_json_object` is renamed or inlined, this comment becomes stale without any compile-time signal. The test name already captures the observable contract precisely. Remove the comment entirely, or replace it with a behavioural description that does not reference internal function names (e.g. `# LLM output has an open brace that is never closed — brace-matching falls back gracefully`).
 
 **Addressed:** Replaced the two implementation-detail comment lines with `# LLM output has an open brace that is never closed — graceful fallback to all-null`.
+
+---
+
+## `app.state.llm` stores a `Llama` but `Pipeline` expects `LLMExtractor` — production crash on every extract request
+
+**File:** `app/main.py`, line 24; `app/api/v1/router.py`, line 62; `app/services/pipeline.py`, line 10
+**Severity:** critical
+
+`main.py` stores the raw model in app state:
+
+```python
+application.state.llm = init_model(...)  # returns Llama
+```
+
+The router then passes it directly to `Pipeline`:
+
+```python
+llm = request.app.state.llm
+pipeline = Pipeline(llm=llm)
+```
+
+`Pipeline.__init__` is typed `llm: LLMExtractor` and `Pipeline.run()` calls `self._llm.extract_fields(text)`. A `Llama` instance has no `extract_fields` method, so every real request to `POST /api/v1/extract` would raise `AttributeError: 'Llama' object has no attribute 'extract_fields'`.
+
+The integration tests mask this entirely: the `client` fixture sets `app.state.llm = MagicMock()`, and `MagicMock` auto-creates any attribute without error. No test exercises the real `Llama → Pipeline` wiring.
+
+Fix by wrapping the model at the point it is stored — either in `main.py` (`application.state.llm = LLMExtractor(init_model(...))`) or inside the router before passing to `Pipeline` — so that `Pipeline` always receives the type its signature advertises.
+
+**Addressed:** Added `test_lifespan_stores_llm_extractor_in_app_state` to `test_model_loading.py` (red: fails because raw `Llama` is stored). Fixed `main.py` to import `LLMExtractor` and wrap: `application.state.llm = LLMExtractor(init_model(...))` (green: test passes).
+
+---
+
+## Mock in valid-PDF test is wired to the wrong method — test passes vacuously
+
+**File:** `tests/test_api.py`, lines 91–93
+**Severity:** major
+
+`test_post_extract_valid_pdf_returns_200_with_schema` configures:
+
+```python
+app.state.llm.create_chat_completion.return_value = {
+    "choices": [{"message": {"content": llm_content}}]
+}
+```
+
+`app.state.llm` is a `MagicMock`. The production path the router exercises is `Pipeline(llm=app.state.llm)` → `pipeline._llm.extract_fields(text)`. The configured `create_chat_completion` return value is never reached by any code in this call chain.
+
+The test passes only because `MagicMock().extract_fields()` auto-returns a MagicMock, `dict(MagicMock())` resolves to `{}`, and the validator returns an all-null `InvoiceResult`. The five keys are present (all `null`) and the assertion `assert key in body` succeeds — but it would succeed even if extraction were completely broken.
+
+The test should either mock `app.state.llm.extract_fields.return_value` with a valid `InvoiceFields` dict and assert non-null values in the response, or it should construct `app.state.llm` as an `LLMExtractor` wrapping a mock `Llama` with `create_chat_completion` configured.
+
+**Addressed:** Changed mock to `app.state.llm.extract_fields.return_value = {valid InvoiceFields dict}` and added `assert body[key] is not None` inside the loop. Removed the unused `import json`. The test now verifies the full extraction pipeline returns populated values.
+
+---
+
+## `InvalidMagicBytesError` path is untested
+
+**File:** `tests/test_api.py`
+**Severity:** minor
+
+`test_post_extract_non_pdf_returns_400` exercises only the `InvalidContentTypeError` path (MIME type `text/plain`). There is no test for a file declared as `application/pdf` but missing the `%PDF` magic bytes — the `InvalidMagicBytesError` branch in `validate_pdf` is left untested.
+
+The magic bytes check is the defence against misnamed files (e.g. a JPEG renamed to `.pdf`). Add a test that sends `content_type="application/pdf"` with bytes that do not start with `%PDF` and asserts a 400 response with an `"error"` key.
+
+**Addressed:** Added `test_post_extract_pdf_with_invalid_magic_bytes_returns_400` to `test_api.py`: sends `content_type="application/pdf"` with non-`%PDF` bytes and asserts status 400 with an `"error"` key.
+
+---
+
+## Health test does not assert `model_loaded`
+
+**File:** `tests/test_api.py`, lines 34–39
+**Severity:** minor
+
+`test_get_health_returns_200` asserts `body["status"] == "ok"` but ignores `body["model_loaded"]`. The health endpoint's `model_loaded` field is the primary signal clients use to determine whether the service is ready to accept extraction requests. The `client` fixture explicitly sets `app.state.model_loaded = True`, making the value predictable. Add `assert body["model_loaded"] is True` to verify the field is present and correct.
+
+**Addressed:** Added `assert body["model_loaded"] is True` to `test_get_health_returns_200`.
+
+---
+
+## Direct import from `conftest.py` is unconventional and fragile
+
+**File:** `tests/test_api.py`, line 21
+**Severity:** nit
+
+`from tests.conftest import make_pdf_bytes` imports a utility function directly from `conftest.py` by module path. `conftest.py` is a pytest-specific file intended for fixtures and hooks, not general utility functions. Direct imports from it are unconventional: if `make_pdf_bytes` is ever extracted to a proper utilities module, any import that references `tests.conftest` breaks without a compile-time signal.
+
+Move `make_pdf_bytes` to a `tests/utils.py` (or `tests/helpers.py`) module and import it from there in both `conftest.py` and `test_api.py`.
+
+**Addressed:** Moved `make_pdf_bytes` to `tests/utils.py` and updated all callers (`test_api.py`, `test_extract_endpoint.py`, `test_pdf_extractor.py`, `test_pdf_validation.py`) to import from `tests.utils`. Removed the function and its re-export from `conftest.py`.

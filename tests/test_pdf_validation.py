@@ -2,7 +2,8 @@ from unittest.mock import MagicMock, patch
 
 from httpx import AsyncClient
 
-from tests.conftest import TEST_API_KEY, make_pdf_bytes
+from tests.conftest import TEST_API_KEY
+from tests.utils import make_pdf_bytes
 
 
 async def test_upload_non_pdf_content_type_returns_400(client: AsyncClient) -> None:
