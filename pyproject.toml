@@ -43,3 +43,6 @@ python_version = "3.12"
 testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = "--cov=app/services --cov-report=term-missing"
+markers = [
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+]

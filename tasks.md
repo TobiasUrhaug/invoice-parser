@@ -347,7 +347,7 @@ These should be real or realistic invoices (not actual client invoices — gener
 
 ---
 
-### [ ] T-18 — Write unit tests for all service components
+### [x] T-18 — Write unit tests for all service components
 
 **Description:**
 Write unit tests for each service module:
@@ -366,7 +366,7 @@ Mock the LLM model in `test_llm_extractor.py` — do not load the actual model i
 
 ---
 
-### [ ] T-19 — Write integration tests for the API
+### [x] T-19 — Write integration tests for the API
 
 **Description:**
 Write `test_api.py` using `httpx.AsyncClient` with the FastAPI test client. Tests should cover:
