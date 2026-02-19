@@ -15,7 +15,6 @@ from app.services.pdf_extractor import (
     InvalidMagicBytesError,
     validate_pdf,
 )
-from app.services.pipeline import Pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +58,7 @@ async def extract(file: UploadFile, request: Request) -> JSONResponse:
             status_code = 400
             raise HTTPException(status_code=400, detail=str(e)) from e
 
-        llm = request.app.state.llm
-        pipeline = Pipeline(llm=llm)
+        pipeline = request.app.state.pipeline
         result, extraction_path = pipeline.run(file_bytes)
         null = _null_fields(result)
         outcome = _outcome(null)

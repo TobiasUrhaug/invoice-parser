@@ -74,6 +74,16 @@ def _extract_json_object(raw: str) -> str | None:
     return None
 
 
+def _null_result() -> InvoiceFields:
+    return {
+        "invoiceDate": None,
+        "invoiceReference": None,
+        "netAmount": None,
+        "vatAmount": None,
+        "totalAmount": None,
+    }
+
+
 class LLMExtractor:
     def __init__(self, model: Llama) -> None:
         self._model = model
@@ -99,24 +109,12 @@ class LLMExtractor:
         )
         choices = response["choices"]
         if not choices:
-            return {
-                "invoiceDate": None,
-                "invoiceReference": None,
-                "netAmount": None,
-                "vatAmount": None,
-                "totalAmount": None,
-            }
+            return _null_result()
         raw = str(choices[0]["message"]["content"] or "")
         return self._parse(raw)
 
     def _parse(self, raw: str) -> InvoiceFields:
-        result: InvoiceFields = {
-            "invoiceDate": None,
-            "invoiceReference": None,
-            "netAmount": None,
-            "vatAmount": None,
-            "totalAmount": None,
-        }
+        result: InvoiceFields = _null_result()
         data: Any = None
 
         try:

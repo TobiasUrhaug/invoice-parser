@@ -123,11 +123,11 @@ def test_init_model_returns_llama_instance(tmp_path: Path) -> None:
     assert result is mock_llama
 
 
-async def test_lifespan_stores_llm_extractor_in_app_state(
+async def test_lifespan_stores_pipeline_in_app_state(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from app.main import app, lifespan
-    from app.services.llm_extractor import LLMExtractor
+    from app.services.pipeline import Pipeline
 
     monkeypatch.setenv("API_KEY", "test-key")
     get_settings.cache_clear()
@@ -138,6 +138,7 @@ async def test_lifespan_stores_llm_extractor_in_app_state(
             patch("app.main.configure_logging"),
         ):
             async with lifespan(app):
-                assert isinstance(app.state.llm, LLMExtractor)
+                assert isinstance(app.state.pipeline, Pipeline)
+                assert app.state.model_loaded is True
     finally:
         get_settings.cache_clear()

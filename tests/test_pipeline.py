@@ -1,9 +1,11 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from app.api.v1.schemas import InvoiceResult
-from app.services.pdf_extractor import ExtractionResult
+from app.services.pdf_extractor import ExtractionResult, SmartPDFExtractor
+from app.services.pipeline import Pipeline
+from app.services.validator import InvoiceValidator
 
 
 def _mock_llm() -> MagicMock:
@@ -18,19 +20,34 @@ def _mock_llm() -> MagicMock:
     return llm
 
 
-def test_pipeline_run_returns_invoice_result_for_text_pdf() -> None:
-    from app.services.pipeline import Pipeline
+def _mock_pdf(extraction: ExtractionResult) -> MagicMock:
+    pdf = MagicMock(spec=SmartPDFExtractor)
+    pdf.extract.return_value = extraction
+    return pdf
 
-    pdf_bytes = b"%PDF-1.4 fake"
+
+def _make_pipeline(
+    llm: MagicMock | None = None,
+    pdf: MagicMock | None = None,
+    validator: InvoiceValidator | None = None,
+) -> Pipeline:
+    extraction = ExtractionResult(text="Invoice text", path="text")
+    return Pipeline(
+        pdf=pdf or _mock_pdf(extraction),
+        llm=llm or _mock_llm(),
+        validator=validator or InvoiceValidator(),
+    )
+
+
+def test_pipeline_run_returns_invoice_result_for_text_pdf() -> None:
     extraction = ExtractionResult(text="Invoice text", path="text")
     llm = _mock_llm()
-
-    with patch(
-        "app.services.pipeline.SmartPDFExtractor.extract",
-        return_value=extraction,
-    ):
-        pipeline = Pipeline(llm=llm)
-        result, path = pipeline.run(pdf_bytes)
+    pipeline = Pipeline(
+        pdf=_mock_pdf(extraction),
+        llm=llm,
+        validator=InvoiceValidator(),
+    )
+    result, path = pipeline.run(b"%PDF-1.4 fake")
 
     assert isinstance(result, InvoiceResult)
     assert path == "text"
@@ -38,68 +55,51 @@ def test_pipeline_run_returns_invoice_result_for_text_pdf() -> None:
 
 
 def test_pipeline_run_returns_ocr_path_when_ocr_used() -> None:
-    from app.services.pipeline import Pipeline
-
-    pdf_bytes = b"%PDF-1.4 fake"
     extraction = ExtractionResult(text="Scanned text", path="ocr")
     llm = _mock_llm()
-
-    with patch(
-        "app.services.pipeline.SmartPDFExtractor.extract",
-        return_value=extraction,
-    ):
-        pipeline = Pipeline(llm=llm)
-        result, path = pipeline.run(pdf_bytes)
+    pipeline = Pipeline(
+        pdf=_mock_pdf(extraction),
+        llm=llm,
+        validator=InvoiceValidator(),
+    )
+    result, path = pipeline.run(b"%PDF-1.4 fake")
 
     assert path == "ocr"
 
 
 def test_pipeline_pdf_extraction_error_propagates() -> None:
-    from app.services.pipeline import Pipeline
-
-    with patch(
-        "app.services.pipeline.SmartPDFExtractor.extract",
-        side_effect=ValueError("bad pdf"),
-    ):
-        pipeline = Pipeline(llm=_mock_llm())
-        with pytest.raises(ValueError, match="bad pdf"):
-            pipeline.run(b"%PDF")
+    pdf = MagicMock(spec=SmartPDFExtractor)
+    pdf.extract.side_effect = ValueError("bad pdf")
+    pipeline = Pipeline(
+        pdf=pdf,
+        llm=_mock_llm(),
+        validator=InvoiceValidator(),
+    )
+    with pytest.raises(ValueError, match="bad pdf"):
+        pipeline.run(b"%PDF")
 
 
 def test_pipeline_llm_error_propagates() -> None:
-    from app.services.pdf_extractor import ExtractionResult
-    from app.services.pipeline import Pipeline
-
     extraction = ExtractionResult(text="some text", path="text")
     llm = MagicMock()
     llm.extract_fields.side_effect = RuntimeError("model timeout")
-
-    with patch(
-        "app.services.pipeline.SmartPDFExtractor.extract",
-        return_value=extraction,
-    ):
-        pipeline = Pipeline(llm=llm)
-        with pytest.raises(RuntimeError, match="model timeout"):
-            pipeline.run(b"%PDF")
+    pipeline = Pipeline(
+        pdf=_mock_pdf(extraction),
+        llm=llm,
+        validator=InvoiceValidator(),
+    )
+    with pytest.raises(RuntimeError, match="model timeout"):
+        pipeline.run(b"%PDF")
 
 
 def test_pipeline_validator_error_propagates() -> None:
-    from app.services.pdf_extractor import ExtractionResult
-    from app.services.pipeline import Pipeline
-
     extraction = ExtractionResult(text="some text", path="text")
-    llm = _mock_llm()
-
-    with (
-        patch(
-            "app.services.pipeline.SmartPDFExtractor.extract",
-            return_value=extraction,
-        ),
-        patch(
-            "app.services.pipeline.InvoiceValidator.validate",
-            side_effect=RuntimeError("validator crash"),
-        ),
-    ):
-        pipeline = Pipeline(llm=llm)
-        with pytest.raises(RuntimeError, match="validator crash"):
-            pipeline.run(b"%PDF")
+    validator = MagicMock(spec=InvoiceValidator)
+    validator.validate.side_effect = RuntimeError("validator crash")
+    pipeline = Pipeline(
+        pdf=_mock_pdf(extraction),
+        llm=_mock_llm(),
+        validator=validator,
+    )
+    with pytest.raises(RuntimeError, match="validator crash"):
+        pipeline.run(b"%PDF")
