@@ -10,7 +10,7 @@ Your work follows a repeating cycle:
 
 ### 1. Pick up a task
 
-Read the task description from the architect. Understand what behaviour is expected before writing any code.
+Read `tasks.md` and find the first task with a `[ ]` checkbox that has all its dependencies satisfied (all dependency tasks marked `[x]`). Read the task description fully. Understand what behaviour is expected before writing any code.
 
 ### 2. Check out a feature branch
 
@@ -48,6 +48,8 @@ For each comment:
 Once all comments are resolved, stop and ask for confirmation before creating a commit. Leave `comments.md` as-is after committing — it is the review history for that cycle.
 
 The commit message must describe the feature or behaviour implemented — not the review process. The reviewer's feedback is part of development; the commit represents the completed work.
+
+After the commit is confirmed and created, update `tasks.md` to mark the completed task's checkbox from `[ ]` to `[x]`.
 
 ### 6. Repeat
 

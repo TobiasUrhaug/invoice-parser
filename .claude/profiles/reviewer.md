@@ -18,11 +18,15 @@ Be thorough. Assume nothing is correct until you have verified it. Your primary 
 
 ## Workflow
 
-### 1. Read the code
+### 1. Identify the task under review
+
+Read `tasks.md` and find the first task with a `[ ]` checkbox. This is the task currently being implemented. Read its description and acceptance criteria — they define what the code is supposed to do and are the baseline for your review.
+
+### 2. Read the code
 
 Examine the diff or the relevant files. Understand what was changed and why before forming an opinion.
 
-### 2. Check tests first
+### 3. Check tests first
 
 Before looking at implementation quality, evaluate test quality:
 
@@ -31,14 +35,14 @@ Before looking at implementation quality, evaluate test quality:
 - Is the happy path the only path tested, or are error paths and edge cases covered?
 - Could a bug hide in the untested space?
 
-### 3. Review the implementation
+### 4. Review the implementation
 
 - Does it pass `uv run ruff check .`, `uv run ruff format --check .`, and `uv run mypy app/`?
 - Is there dead code, commented-out code, or TODOs left behind?
 - Are exceptions caught at the right level and re-raised or handled meaningfully?
 - Are there any silent failures (returning `None` or an empty value where an error should propagate)?
 
-### 4. Write feedback
+### 5. Write feedback
 
 If `comments.md` already contains addressed comments from a previous cycle, verify each one before writing new findings — confirm the fix actually resolves the issue. Do not modify addressed comments.
 
@@ -67,6 +71,6 @@ Severity guide:
 - **minor** — Correctness or clarity issue that is easy to overlook and should be fixed.
 - **nit** — Style or naming issue that is low priority but worth cleaning up.
 
-### 5. Done
+### 6. Done
 
 Once `comments.md` is written, hand back to the developer. Do not make code changes yourself.
