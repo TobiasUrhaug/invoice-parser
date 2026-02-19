@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock, patch
+
 from httpx import AsyncClient
 
 from tests.conftest import TEST_API_KEY, make_pdf_bytes
@@ -34,9 +36,21 @@ async def test_upload_fake_pdf_wrong_magic_bytes_returns_400(
 
 
 async def test_valid_pdf_passes_all_checks(client: AsyncClient) -> None:
-    response = await client.post(
-        "/api/v1/extract",
-        files={"file": ("invoice.pdf", make_pdf_bytes(), "application/pdf")},
-        headers={"X-API-Key": TEST_API_KEY},
+    from app.api.v1.schemas import InvoiceResult
+
+    result = InvoiceResult(
+        invoiceDate=None,
+        invoiceReference=None,
+        netAmount=None,
+        vatAmount=None,
+        totalAmount=None,
     )
+    mock_pipeline = MagicMock()
+    mock_pipeline.run.return_value = (result, "text")
+    with patch("app.api.v1.router.Pipeline", return_value=mock_pipeline):
+        response = await client.post(
+            "/api/v1/extract",
+            files={"file": ("invoice.pdf", make_pdf_bytes(), "application/pdf")},
+            headers={"X-API-Key": TEST_API_KEY},
+        )
     assert response.status_code == 200
