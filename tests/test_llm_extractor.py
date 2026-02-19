@@ -151,3 +151,35 @@ def test_extract_fields_returns_all_null_when_content_is_none() -> None:
 
     assert set(result.keys()) == _FIVE_KEYS
     assert all(v is None for v in result.values())
+
+
+def test_extract_fields_returns_all_null_when_opening_brace_is_never_closed() -> None:
+    # LLM output has an open brace that is never closed — graceful fallback to all-null
+    extractor = LLMExtractor(_make_mock_model("Here is the result: {unclosed"))
+
+    result = extractor.extract_fields("text")
+
+    assert set(result.keys()) == _FIVE_KEYS
+    assert all(v is None for v in result.values())
+
+
+def test_extract_fields_handles_escaped_quotes_in_prose_wrapped_json() -> None:
+    # The model output contains a JSON object wrapped in prose, with an escaped
+    # quote inside a string value.  _extract_json_object must not treat the
+    # escaped quote as the end of the string.
+    inner = json.dumps(
+        {
+            "invoiceDate": None,
+            "invoiceReference": 'INV "special"',
+            "netAmount": None,
+            "vatAmount": None,
+            "totalAmount": None,
+        }
+    )
+    wrapped = f"Extracted data: {inner}"
+    extractor = LLMExtractor(_make_mock_model(wrapped))
+
+    result = extractor.extract_fields("text")
+
+    assert set(result.keys()) == _FIVE_KEYS
+    assert result["invoiceReference"] == 'INV "special"'

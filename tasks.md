@@ -327,7 +327,7 @@ In `app/main.py`, register exception handlers for:
 
 ## Phase 5 — Integration Testing
 
-### [ ] T-17 — Create PDF test fixtures
+### [x] T-17 — Create PDF test fixtures
 
 **Description:**
 Collect or generate a small set of PDF invoices for use as test fixtures in `tests/fixtures/`. The set should include:
@@ -347,7 +347,7 @@ These should be real or realistic invoices (not actual client invoices — gener
 
 ---
 
-### [ ] T-18 — Write unit tests for all service components
+### [x] T-18 — Write unit tests for all service components
 
 **Description:**
 Write unit tests for each service module:
@@ -366,7 +366,7 @@ Mock the LLM model in `test_llm_extractor.py` — do not load the actual model i
 
 ---
 
-### [ ] T-19 — Write integration tests for the API
+### [x] T-19 — Write integration tests for the API
 
 **Description:**
 Write `test_api.py` using `httpx.AsyncClient` with the FastAPI test client. Tests should cover:
@@ -378,6 +378,12 @@ Write `test_api.py` using `httpx.AsyncClient` with the FastAPI test client. Test
 - `GET /health` → `200`
 
 Mark integration tests with `@pytest.mark.integration`. These tests may load the real model and are expected to be slow.
+
+**Pre-implementation notes:**
+
+- **OCR fixture verification:** The expected values in `tests/fixtures/invoice_scanned.json` were not derived by running the actual pipeline — they were hand-authored when the fixture was generated. Before wiring `invoice_scanned.pdf` into integration tests, run the pipeline against the fixture and update `invoice_scanned.json` with the real output. OCR accuracy depends on font rendering and engine version; the current expected values may produce spurious failures.
+
+- **Non-ASCII handling:** `tests/fixtures/invoice_german.pdf` is deliberately ASCII-only because the Helvetica Type1 font cannot render umlauts (ä, ö, ü, ß). It tests non-English language handling only. Consider sourcing a separately generated fixture (e.g. using a Unicode-capable font or a real German invoice PDF) to verify non-ASCII character handling end-to-end.
 
 **Acceptance criteria:**
 - All tests pass

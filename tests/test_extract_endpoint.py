@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from httpx import AsyncClient
 
-from tests.conftest import make_pdf_bytes
+from tests.utils import make_pdf_bytes
 
 _FIVE_KEYS = (
     "invoiceDate",
