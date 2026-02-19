@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     model_dir: Path = Path("/app/models")
     model_repo_id: str = "Qwen/Qwen2.5-1.5B-Instruct-GGUF"
     model_filename: str = "qwen2.5-1.5b-instruct-q4_k_m.gguf"
+    model_n_ctx: int = 4096
+    model_n_gpu_layers: int = 0
     min_text_chars_per_page: int = 50
     max_file_size_mb: int = 10
     log_level: str = "INFO"
