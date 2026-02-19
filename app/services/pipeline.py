@@ -7,10 +7,15 @@ from app.services.validator import InvoiceValidator
 
 
 class Pipeline:
-    def __init__(self, llm: LLMExtractor) -> None:
-        self._pdf = SmartPDFExtractor()
+    def __init__(
+        self,
+        pdf: SmartPDFExtractor,
+        llm: LLMExtractor,
+        validator: InvoiceValidator,
+    ) -> None:
+        self._pdf = pdf
         self._llm = llm
-        self._validator = InvoiceValidator()
+        self._validator = validator
 
     def run(self, file_bytes: bytes) -> tuple[InvoiceResult, Literal["text", "ocr"]]:
         extraction = self._pdf.extract(file_bytes)

@@ -11,6 +11,9 @@ from app.api.v1.router import router
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.services.llm_extractor import LLMExtractor, init_model
+from app.services.pdf_extractor import SmartPDFExtractor
+from app.services.pipeline import Pipeline
+from app.services.validator import InvoiceValidator
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +24,7 @@ async def lifespan(application: FastAPI) -> AsyncGenerator[None, None]:
     settings = get_settings()
     configure_logging(settings.log_level)
     try:
-        application.state.llm = LLMExtractor(
+        llm = LLMExtractor(
             init_model(
                 model_dir=settings.model_dir,
                 repo_id=settings.model_repo_id,
@@ -29,6 +32,11 @@ async def lifespan(application: FastAPI) -> AsyncGenerator[None, None]:
                 n_ctx=settings.model_n_ctx,
                 n_gpu_layers=settings.model_n_gpu_layers,
             )
+        )
+        application.state.pipeline = Pipeline(
+            pdf=SmartPDFExtractor(settings.min_text_chars_per_page),
+            llm=llm,
+            validator=InvoiceValidator(),
         )
         application.state.model_loaded = True
     except Exception:

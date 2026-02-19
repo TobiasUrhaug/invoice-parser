@@ -93,13 +93,18 @@ async def test_post_extract_valid_pdf_returns_200_with_schema(
     client: AsyncClient,
 ) -> None:
     """Valid PDF returns 200 with all five invoice fields present and non-null."""
-    app.state.llm.extract_fields.return_value = {
-        "invoiceDate": "2024-01-15",
-        "invoiceReference": "INV-2024-001",
-        "netAmount": {"amount": 1000.0, "currency": "USD"},
-        "vatAmount": {"amount": 250.0, "currency": "USD"},
-        "totalAmount": {"amount": 1250.0, "currency": "USD"},
-    }
+    from decimal import Decimal
+
+    from app.api.v1.schemas import InvoiceResult, MonetaryAmount
+
+    mock_result = InvoiceResult(
+        invoiceDate="2024-01-15",
+        invoiceReference="INV-2024-001",
+        netAmount=MonetaryAmount(amount=Decimal("1000.0"), currency="USD"),
+        vatAmount=MonetaryAmount(amount=Decimal("250.0"), currency="USD"),
+        totalAmount=MonetaryAmount(amount=Decimal("1250.0"), currency="USD"),
+    )
+    app.state.pipeline.run.return_value = (mock_result, "text")
     pdf_bytes = (_FIXTURES_DIR / "invoice_english.pdf").read_bytes()
 
     response = await client.post(

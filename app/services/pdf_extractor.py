@@ -1,5 +1,4 @@
 import io
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Literal
 
@@ -46,12 +45,7 @@ def _is_text_based(
     return (len(text) / page_count) >= min_chars_per_page if page_count > 0 else False
 
 
-class PDFExtractor(ABC):
-    @abstractmethod
-    def extract_text(self, file_bytes: bytes) -> str: ...
-
-
-class PlumberExtractor(PDFExtractor):
+class PlumberExtractor:
     def extract_text_and_page_count(self, file_bytes: bytes) -> tuple[str, int]:
         if not file_bytes:
             raise ValueError("file_bytes must not be empty")
@@ -64,7 +58,7 @@ class PlumberExtractor(PDFExtractor):
         return self.extract_text_and_page_count(file_bytes)[0]
 
 
-class PaddleOCRExtractor(PDFExtractor):
+class PaddleOCRExtractor:
     def extract_text(self, file_bytes: bytes) -> str:
         from paddleocr import PaddleOCR  # type: ignore[import-untyped]
         from pdf2image import convert_from_bytes
@@ -88,15 +82,13 @@ class ExtractionResult:
 
 
 class SmartPDFExtractor:
-    def __init__(self) -> None:
+    def __init__(self, min_chars_per_page: int = _MIN_TEXT_CHARS_PER_PAGE) -> None:
         self._plumber = PlumberExtractor()
+        self._min_chars = min_chars_per_page
 
     def extract(self, file_bytes: bytes) -> ExtractionResult:
-        from app.core.config import get_settings
-
         text, page_count = self._plumber.extract_text_and_page_count(file_bytes)
-        settings = get_settings()
-        if _is_text_based(text, page_count, settings.min_text_chars_per_page):
+        if _is_text_based(text, page_count, self._min_chars):
             return ExtractionResult(text=text, path="text")
 
         ocr = PaddleOCRExtractor()

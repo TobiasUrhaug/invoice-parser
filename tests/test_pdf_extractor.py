@@ -108,9 +108,7 @@ def test_validate_pdf_passes_for_valid_pdf_bytes() -> None:
 # --- SmartPDFExtractor ---
 
 
-def test_smart_extractor_uses_text_path_for_digital_pdf(
-    mock_settings: None,
-) -> None:
+def test_smart_extractor_uses_text_path_for_digital_pdf() -> None:
     # Text must be >= 50 chars per page to meet the default threshold.
     rich_text = "InvoiceNumber 12345 Date 2024-01-15 Total 1000.00 EUR"
     pdf_bytes = make_pdf_bytes(rich_text)
@@ -120,9 +118,7 @@ def test_smart_extractor_uses_text_path_for_digital_pdf(
     assert "InvoiceNumber" in result.text
 
 
-def test_smart_extractor_uses_ocr_path_for_scanned_pdf(
-    mock_settings: None,
-) -> None:
+def test_smart_extractor_uses_ocr_path_for_scanned_pdf() -> None:
     # A PDF with no extractable text triggers the OCR path.
     scanned_pdf = make_pdf_bytes("")  # empty text → below threshold
 
@@ -141,7 +137,7 @@ def test_smart_extractor_uses_ocr_path_for_scanned_pdf(
     assert result.text == fake_ocr_text
 
 
-def test_smart_extractor_propagates_plumber_error(mock_settings: None) -> None:
+def test_smart_extractor_propagates_plumber_error() -> None:
     extractor = SmartPDFExtractor()
     with patch.object(
         extractor._plumber,
