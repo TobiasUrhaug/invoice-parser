@@ -1,0 +1,16 @@
+{
+  "invoiceDate": "2024-03-10",
+  "invoiceReference": "SCAN-001",
+  "netAmount": {
+    "amount": "500.00",
+    "currency": "GBP"
+  },
+  "vatAmount": {
+    "amount": "100.00",
+    "currency": "GBP"
+  },
+  "totalAmount": {
+    "amount": "600.00",
+    "currency": "GBP"
+  }
+}

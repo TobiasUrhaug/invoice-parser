@@ -1,0 +1,16 @@
+{
+  "invoiceDate": "2024-02-20",
+  "invoiceReference": "RE-2024-042",
+  "netAmount": {
+    "amount": "850.00",
+    "currency": "EUR"
+  },
+  "vatAmount": {
+    "amount": "161.50",
+    "currency": "EUR"
+  },
+  "totalAmount": {
+    "amount": "1011.50",
+    "currency": "EUR"
+  }
+}

@@ -128,3 +128,59 @@ The tuple `_INVOICE_FIELDS` hardcodes the same five field names that already liv
 Derive the field names from the schema directly — e.g. `tuple(InvoiceResult.model_fields.keys())` — so there is a single source of truth.
 
 **Addressed:** Replaced the hardcoded `_INVOICE_FIELDS` tuple in `router.py` with `tuple(InvoiceResult.model_fields.keys())`.
+
+---
+
+## `invoice_partial` expected output contradicts the invoice text
+
+**File:** `tests/fixtures/invoice_partial.json`, `tests/fixtures/generate_fixtures.py`, line 230
+**Severity:** major
+
+The `invoice_partial` invoice contains the line `"No VAT applies. Total equals net amount."`, but the expected JSON has `totalAmount: null`. Any LLM following the system prompt — "set undetectable fields to null" — will read that sentence and correctly infer the total is EUR 300.00. It will not return null.
+
+This creates a false regression failure: the pipeline produces a reasonable answer, but the fixture says it is wrong. Integration tests built on this fixture will fail consistently, not because of a bug but because the expected output is incorrect.
+
+To actually test null field handling for `totalAmount`, remove any mention of a total from the invoice text. Or, if the intent is merely to test `vatAmount: null`, update the expected JSON so `totalAmount` matches what the LLM would actually return (EUR 300.00).
+
+**Addressed:** Removed the line `"No VAT applies. Total equals net amount."` from the `invoice_partial` fixture in `generate_fixtures.py`. The invoice no longer states a total amount, making `totalAmount: null` a defensible expectation. Regenerated `invoice_partial.pdf` and `invoice_partial.json`.
+
+---
+
+## German fixture avoids umlauts — does not test non-ASCII handling
+
+**File:** `tests/fixtures/generate_fixtures.py`, lines 156–178
+**Severity:** minor
+
+The German invoice uses ASCII substitutes throughout: `"Muenchen"` instead of `"München"`, `"Hauptstrasse"` instead of `"Hauptstraße"`. This is a workaround for the Helvetica Type1 font in `_make_text_pdf`, which cannot render non-ASCII characters without explicit encoding.
+
+The rationale for a non-English fixture is to verify the pipeline handles European languages — including their special characters. A German invoice that never uses an umlaut does not exercise that risk. A real German invoice would contain ä, ö, ü, ß. If the PDF encoding pipeline cannot produce them, the fixture should at least be documented as deliberately ASCII-only, and a separate note added to T-19 to verify non-ASCII handling manually or via a separately sourced fixture.
+
+**Addressed:** Added a `# NOTE: Deliberately ASCII-only` comment block on the `invoice_german` fixture entry in `generate_fixtures.py` explaining the font limitation. Added a "Non-ASCII handling" pre-implementation note to T-19 in `tasks.md` directing implementers to source a Unicode-capable fixture for end-to-end umlaut verification.
+
+---
+
+## OCR fixture expected values are unverified against actual OCR output
+
+**File:** `tests/fixtures/invoice_scanned.json`
+**Severity:** minor
+
+The expected output in `invoice_scanned.json` assumes the OCR + LLM pipeline will return exact values (`"SCAN-001"`, `"2024-03-10"`, `"500.00"`, etc.). These values were not derived by running the pipeline against the fixture — they were defined in `generate_fixtures.py` and written directly to the JSON file.
+
+OCR accuracy depends on font rendering, image quality, and engine version. The PIL default bitmap font at size 14 used by `_make_image_pdf` is legible to a human but may produce character-level errors in PaddleOCR. If OCR returns `"SCAN-OO1"` or `"2O24-O3-1O"` (zeros misread as O's), the integration test fails spuriously with no code bug present.
+
+Run the actual pipeline against `invoice_scanned.pdf` and update `invoice_scanned.json` with the real output before wiring this fixture into T-19 integration tests.
+
+**Addressed:** Added an "OCR fixture verification" pre-implementation note to T-19 in `tasks.md` requiring implementers to run the actual pipeline against `invoice_scanned.pdf` and update the expected JSON before using the fixture in integration tests.
+
+---
+
+## `_make_image_pdf` defines an unused font object
+
+**File:** `tests/fixtures/generate_fixtures.py`, line 100
+**Severity:** nit
+
+`obj5` defines a Helvetica font in the image PDF, but the content stream (`q {w} 0 0 {h} 0 0 cm /Im1 Do Q`) only references the image XObject `Im1`. No text operators use `/F1`, so the font object is unreferenced dead weight in the PDF structure.
+
+Remove `obj5` from `_make_image_pdf` and adjust the xref table from `0 7` to `0 6` accordingly.
+
+**Addressed:** Removed the unused font `obj5` from `_make_image_pdf`. Renumbered the image XObject from `6 0 obj` to `5 0 obj`, updated the page resources reference from `6 0 R` to `5 0 R`, and changed the xref table from `0 7` to `0 6`. Regenerated `invoice_scanned.pdf`.

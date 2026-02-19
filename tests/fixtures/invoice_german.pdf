@@ -1,0 +1,48 @@
+%PDF-1.4
+1 0 obj
+<</Type /Catalog /Pages 2 0 R>>
+endobj
+2 0 obj
+<</Type /Pages /Kids [3 0 R] /Count 1>>
+endobj
+3 0 obj
+<</Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources <</Font <</F1 5 0 R>>>>>>
+endobj
+4 0 obj
+<</Length 984>>
+stream
+BT /F1 11 Tf 50 720 Td (RECHNUNG) Tj ET
+BT /F1 11 Tf 50 704 Td () Tj ET
+BT /F1 11 Tf 50 688 Td (Von: Mustermann GmbH, Hauptstrasse 10, 10115 Berlin) Tj ET
+BT /F1 11 Tf 50 672 Td (An:  Schmidt AG, Industrieweg 5, 80333 Muenchen) Tj ET
+BT /F1 11 Tf 50 656 Td () Tj ET
+BT /F1 11 Tf 50 640 Td (Rechnungsnummer: RE-2024-042) Tj ET
+BT /F1 11 Tf 50 624 Td (Rechnungsdatum:  20.02.2024) Tj ET
+BT /F1 11 Tf 50 608 Td () Tj ET
+BT /F1 11 Tf 50 592 Td (Beschreibung                 Menge   Einzelpreis   Betrag) Tj ET
+BT /F1 11 Tf 50 576 Td (Beratungsleistungen            1       850,00       850,00) Tj ET
+BT /F1 11 Tf 50 560 Td () Tj ET
+BT /F1 11 Tf 50 544 Td (Nettobetrag:    EUR  850,00) Tj ET
+BT /F1 11 Tf 50 528 Td (MwSt. \(19%\):    EUR  161,50) Tj ET
+BT /F1 11 Tf 50 512 Td (Gesamtbetrag:   EUR 1011,50) Tj ET
+BT /F1 11 Tf 50 496 Td () Tj ET
+BT /F1 11 Tf 50 480 Td (Zahlungsziel: 14 Tage netto.) Tj ET
+BT /F1 11 Tf 50 464 Td (Bank: Deutsche Bank  IBAN: DE89 3704 0044 0532 0130 00) Tj ET
+endstream
+endobj
+5 0 obj
+<</Type /Font /Subtype /Type1 /BaseFont /Helvetica>>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000056 00000 n 
+0000000111 00000 n 
+0000000231 00000 n 
+0000001264 00000 n 
+trailer
+<</Size 6 /Root 1 0 R>>
+startxref
+1332
+%%EOF

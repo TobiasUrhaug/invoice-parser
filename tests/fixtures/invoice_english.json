@@ -1,0 +1,16 @@
+{
+  "invoiceDate": "2024-01-15",
+  "invoiceReference": "INV-2024-001",
+  "netAmount": {
+    "amount": "1000.00",
+    "currency": "USD"
+  },
+  "vatAmount": {
+    "amount": "250.00",
+    "currency": "USD"
+  },
+  "totalAmount": {
+    "amount": "1250.00",
+    "currency": "USD"
+  }
+}

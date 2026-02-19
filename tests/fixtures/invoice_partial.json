@@ -1,0 +1,10 @@
+{
+  "invoiceDate": "2024-04-05",
+  "invoiceReference": "PART-001",
+  "netAmount": {
+    "amount": "300.00",
+    "currency": "EUR"
+  },
+  "vatAmount": null,
+  "totalAmount": null
+}
