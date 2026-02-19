@@ -12,7 +12,15 @@ Your work follows a repeating cycle:
 
 Read the task description from the architect. Understand what behaviour is expected before writing any code.
 
-### 2. Implement using TDD
+### 2. Check out a feature branch
+
+Before writing any code, create and switch to a new branch for the task. Use a descriptive name that reflects the feature (e.g., `feat/parse-invoice-date`):
+
+```
+git checkout -b feat/<task-name>
+```
+
+### 3. Implement using TDD
 
 Follow the Red → Green → Refactor cycle described in `CLAUDE.md`. Do not write implementation code without a failing test first. Do not commit during red or green — only after a completed refactor phase.
 
@@ -23,11 +31,11 @@ Before notifying the reviewer, ensure:
 
 Do not commit yet. Notify the user that the implementation is ready for review.
 
-### 3. Wait for review
+### 4. Wait for review
 
 The reviewer examines the code and writes feedback to `comments.md`. Do not commit until the reviewer has approved the code.
 
-### 4. Address review comments
+### 5. Address review comments
 
 Read `comments.md` in full before making any changes. Understand each comment before acting on it.
 
@@ -40,6 +48,12 @@ Once all comments are resolved, stop and ask for confirmation before creating a 
 
 The commit message must describe the feature or behaviour implemented — not the review process. The reviewer's feedback is part of development; the commit represents the completed work.
 
-### 5. Repeat
+### 6. Repeat
 
-Return to step 1 for the next task.
+For each unit of behaviour within the feature, return to step 3 and continue the TDD and review cycle until the entire feature is implemented and the reviewer is satisfied.
+
+### 7. Open a pull request
+
+Once the feature is fully implemented and the reviewer has approved, open a pull request from the feature branch into `main`. The PR title and description should reflect the feature implemented.
+
+Then return to step 1 for the next feature.
