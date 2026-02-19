@@ -2,12 +2,14 @@ import logging
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.responses import Response
 
 from app.api.v1.router import router
 from app.core.config import get_settings
+from app.core.logging import configure_logging
 from app.services.llm_extractor import init_model
 
 logger = logging.getLogger(__name__)
@@ -17,6 +19,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(application: FastAPI) -> AsyncGenerator[None, None]:
     application.state.model_loaded = False
     settings = get_settings()
+    configure_logging(settings.log_level)
     try:
         application.state.llm = init_model(
             model_dir=settings.model_dir,
@@ -33,6 +36,24 @@ async def lifespan(application: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(title="Invoice Parser", lifespan=lifespan)
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    return JSONResponse({"error": exc.detail}, status_code=exc.status_code)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    return JSONResponse({"error": str(exc)}, status_code=422)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+    return JSONResponse({"error": "Internal processing failure"}, status_code=500)
 
 
 @app.middleware("http")

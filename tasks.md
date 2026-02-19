@@ -9,7 +9,7 @@ Tasks are grouped by phase. Each phase should be completed before the next begin
 
 ## Phase 0 — Project Setup
 
-### T-01 — Initialise Python project with uv
+### [x] T-01 — Initialise Python project with uv
 
 **Description:**
 Initialise the project using uv. Create `pyproject.toml` with project metadata, Python version pin (`>=3.12`), and initial dependency groups (main, dev).
@@ -23,7 +23,7 @@ Initialise the project using uv. Create `pyproject.toml` with project metadata, 
 
 ---
 
-### T-02 — Configure linting and type checking
+### [x] T-02 — Configure linting and type checking
 
 **Description:**
 Configure Ruff (linting + formatting) and mypy (strict type checking) in `pyproject.toml`. Add both to the dev dependency group.
@@ -40,7 +40,7 @@ Configure Ruff (linting + formatting) and mypy (strict type checking) in `pyproj
 
 ---
 
-### T-03 — Configure pytest
+### [x] T-03 — Configure pytest
 
 **Description:**
 Add pytest and httpx (for async FastAPI test client) to the dev dependency group. Create `tests/` directory with a `conftest.py` stub.
@@ -53,7 +53,7 @@ Add pytest and httpx (for async FastAPI test client) to the dev dependency group
 
 ---
 
-### T-04 — Create FastAPI application skeleton
+### [x] T-04 — Create FastAPI application skeleton
 
 **Description:**
 Create `app/main.py` with a FastAPI app instance and a lifespan handler (for model loading in a later phase). Create `app/api/v1/router.py` with placeholder route stubs. Register the v1 router under the `/api/v1` prefix.
@@ -69,7 +69,7 @@ Create `app/core/config.py` using `pydantic-settings`. Load all environment vari
 
 ---
 
-### T-05 — Create Dockerfile
+### [x] T-05 — Create Dockerfile
 
 **Description:**
 Write a `Dockerfile` targeting Hugging Face Spaces (port 7860). Use `python:3.12-slim` as base. Install system dependencies: `poppler-utils` (for pdf2image), `libgomp1` (required by PaddleOCR). Use uv to install production dependencies only (`--no-dev`). Copy app source. Set `CMD` to run uvicorn.
@@ -88,7 +88,7 @@ Create a `.env.example` documenting all environment variables with placeholder v
 
 ## Phase 1 — PDF Extraction Layer
 
-### T-06 — Implement text PDF extractor (pdfplumber fast path)
+### [x] T-06 — Implement text PDF extractor (pdfplumber fast path)
 
 **Description:**
 Create `app/services/pdf_extractor.py`. Define an abstract base class `PDFExtractor` with a single abstract method:
@@ -108,7 +108,7 @@ Implement `PlumberExtractor(PDFExtractor)` using pdfplumber. Extract text page b
 
 ---
 
-### T-07 — Implement scanned PDF detection and OCR fallback
+### [x] T-07 — Implement scanned PDF detection and OCR fallback
 
 **Description:**
 In `pdf_extractor.py`, implement:
@@ -131,7 +131,7 @@ Update `app/services/pipeline.py` (stub) to use `SmartPDFExtractor`.
 
 ---
 
-### T-08 — Implement PDF input validation
+### [x] T-08 — Implement PDF input validation
 
 **Description:**
 In `app/api/v1/router.py`, add input validation before handing the file to the pipeline:
@@ -152,7 +152,7 @@ In `app/api/v1/router.py`, add input validation before handing the file to the p
 
 ## Phase 2 — LLM Extraction Layer
 
-### T-09 — Model download and loading
+### [x] T-09 — Model download and loading
 
 **Description:**
 Create `app/services/llm_extractor.py`. Implement model initialisation:
@@ -176,7 +176,7 @@ Create `app/services/llm_extractor.py`. Implement model initialisation:
 
 ---
 
-### T-10 — Implement LLM field extraction
+### [x] T-10 — Implement LLM field extraction
 
 **Description:**
 In `llm_extractor.py`, define `LLMExtractor` with method `extract_fields(text: str) -> dict`. Implement:
@@ -200,7 +200,7 @@ In `llm_extractor.py`, define `LLMExtractor` with method `extract_fields(text: s
 
 ## Phase 3 — Validation Layer
 
-### T-11 — Define response schema
+### [x] T-11 — Define response schema
 
 **Description:**
 In `app/api/v1/schemas.py`, define Pydantic v2 models:
@@ -229,7 +229,7 @@ Use `Decimal` for amounts to avoid floating-point rounding issues.
 
 ---
 
-### T-12 — Implement validation and business rule checks
+### [x] T-12 — Implement validation and business rule checks
 
 **Description:**
 Create `app/services/validator.py`. Implement `InvoiceValidator` with method `validate(raw: dict) -> InvoiceResult`:
@@ -252,7 +252,7 @@ Create `app/services/validator.py`. Implement `InvoiceValidator` with method `va
 
 ## Phase 4 — API Layer
 
-### T-13 — Implement authentication middleware
+### [x] T-13 — Implement authentication middleware
 
 **Description:**
 Create `app/core/security.py`. Implement a FastAPI dependency `verify_api_key(x_api_key: str = Header(...)) -> None` that compares the provided key against `settings.API_KEY` using `hmac.compare_digest` (constant-time). Raise `HTTPException(status_code=401)` on mismatch or missing header.
@@ -269,7 +269,7 @@ Apply this dependency globally to all routes under `/api/v1`.
 
 ---
 
-### T-14 — Implement extraction endpoint
+### [x] T-14 — Implement extraction endpoint
 
 **Description:**
 In `app/api/v1/router.py`, implement `POST /api/v1/extract`:
@@ -291,7 +291,7 @@ Add structured logging before and after the pipeline call (see spec.md section 7
 
 ---
 
-### T-15 — Implement structured logging
+### [x] T-15 — Implement structured logging
 
 **Description:**
 Create `app/core/logging.py`. Configure Python's `logging` module to emit JSON-formatted lines to stdout. Each log record for a request should include the fields from spec.md section 7. Use a custom `logging.Formatter` that serialises the record to JSON.
@@ -307,7 +307,7 @@ Configure the logger in the FastAPI lifespan handler. All application code shoul
 
 ---
 
-### T-16 — Implement global error handling
+### [x] T-16 — Implement global error handling
 
 **Description:**
 In `app/main.py`, register exception handlers for:
@@ -327,7 +327,7 @@ In `app/main.py`, register exception handlers for:
 
 ## Phase 5 — Integration Testing
 
-### T-17 — Create PDF test fixtures
+### [ ] T-17 — Create PDF test fixtures
 
 **Description:**
 Collect or generate a small set of PDF invoices for use as test fixtures in `tests/fixtures/`. The set should include:
@@ -347,7 +347,7 @@ These should be real or realistic invoices (not actual client invoices — gener
 
 ---
 
-### T-18 — Write unit tests for all service components
+### [ ] T-18 — Write unit tests for all service components
 
 **Description:**
 Write unit tests for each service module:
@@ -366,7 +366,7 @@ Mock the LLM model in `test_llm_extractor.py` — do not load the actual model i
 
 ---
 
-### T-19 — Write integration tests for the API
+### [ ] T-19 — Write integration tests for the API
 
 **Description:**
 Write `test_api.py` using `httpx.AsyncClient` with the FastAPI test client. Tests should cover:
@@ -389,7 +389,7 @@ Mark integration tests with `@pytest.mark.integration`. These tests may load the
 
 ## Phase 6 — Deployment
 
-### T-20 — Configure Hugging Face Spaces deployment
+### [ ] T-20 — Configure Hugging Face Spaces deployment
 
 **Description:**
 Create a `README.md` for the HF Space (HF Spaces uses the `README.md` YAML front matter for space configuration).
