@@ -12,6 +12,11 @@ def _make_mock_model(content: str) -> MagicMock:
     return mock
 
 
+def mock_messages(extractor: LLMExtractor) -> list[dict[str, str]]:
+    call_args = extractor._model.create_chat_completion.call_args
+    return call_args.kwargs.get("messages") or call_args[1]["messages"]
+
+
 def test_extract_fields_returns_all_five_keys_for_valid_invoice_text() -> None:
     payload = {
         "invoiceDate": "2024-01-15",
@@ -161,6 +166,43 @@ def test_extract_fields_returns_all_null_when_opening_brace_is_never_closed() ->
 
     assert set(result.keys()) == _FIVE_KEYS
     assert all(v is None for v in result.values())
+
+
+def _null_json() -> str:
+    return (
+        '{"invoiceDate": null, "invoiceReference": null, '
+        '"netAmount": null, "vatAmount": null, '
+        '"totalAmount": null}'
+    )
+
+
+def test_extract_fields_sends_few_shot_example_in_messages() -> None:
+    extractor = LLMExtractor(_make_mock_model(_null_json()))
+
+    extractor.extract_fields("Some invoice text")
+
+    msgs = mock_messages(extractor)
+    assert len(msgs) == 6
+    assert msgs[0]["role"] == "system"
+    assert msgs[1]["role"] == "user"
+    assert msgs[2]["role"] == "assistant"
+    assert msgs[3]["role"] == "user"
+    assert msgs[4]["role"] == "assistant"
+    assert msgs[5]["role"] == "user"
+    assert "Some invoice text" in msgs[5]["content"]
+    assert "invoiceDate" in msgs[2]["content"]
+    assert "null" in msgs[4]["content"]
+
+
+def test_extract_fields_system_prompt_instructs_no_arithmetic() -> None:
+    extractor = LLMExtractor(_make_mock_model(_null_json()))
+
+    extractor.extract_fields("text")
+
+    messages = mock_messages(extractor)
+    system_content = messages[0]["content"]
+    assert "Do NOT" in system_content
+    assert "calculate" in system_content
 
 
 def test_extract_fields_handles_escaped_quotes_in_prose_wrapped_json() -> None:
