@@ -4,17 +4,49 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Python project for parsing invoices. Currently in initial setup — no source code, build system, or package manager has been configured yet.
-
-The `.gitignore` includes entries for Ruff, mypy, pytest, and common Python virtual environment tools (uv, Poetry, PDM, Pipenv, Pixi), but none have been configured yet.
+Stateless HTTP service that extracts structured fields from PDF invoices using a local LLM. Built with Python 3.12, FastAPI, pdfplumber, PaddleOCR, and llama-cpp-python. Managed with uv.
 
 ## Setup
 
-Once a package manager and build system are chosen, update this file with:
-- How to install dependencies
-- How to run the project
-- How to run tests (including a single test)
-- How to lint and type-check
+Install dependencies:
+
+```bash
+uv sync
+```
+
+Run the service locally:
+
+```bash
+uv run uvicorn app.main:app --reload
+```
+
+Run all tests:
+
+```bash
+uv run pytest
+```
+
+Run fast tests only (skips integration tests that load the real model):
+
+```bash
+uv run pytest -m "not integration"
+```
+
+Run a single test:
+
+```bash
+uv run pytest tests/test_validator.py::test_valid_dict_produces_correct_invoice_result
+```
+
+Lint and type-check:
+
+```bash
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy app/
+```
+
+Environment variables are documented in `.env.example`. `API_KEY` is required.
 
 ## Way of Working
 

@@ -16,18 +16,51 @@ _FIVE_KEYS = frozenset(
 )
 
 _SYSTEM_PROMPT = (
-    "You are an invoice data extraction assistant. "
-    "Extract the following fields from the invoice text provided "
-    "and return ONLY a JSON object with exactly these five keys: "
-    "invoiceDate, invoiceReference, netAmount, vatAmount, totalAmount. "
-    "Rules:\n"
-    "- invoiceDate: ISO 8601 date string (YYYY-MM-DD) or null\n"
-    "- invoiceReference: invoice number/reference string or null\n"
-    "- netAmount, vatAmount, totalAmount: object with 'amount' (number) "
-    "and 'currency' (ISO 4217 code), or null\n"
-    "- Set any field to null if it cannot be determined from the text\n"
-    "- Handle invoices in any European language\n"
-    "Return only the JSON object with no additional text."
+    "Extract invoice fields. Return ONLY a JSON object "
+    "with these five keys:\n"
+    "- invoiceDate: ISO 8601 (YYYY-MM-DD) or null\n"
+    "- invoiceReference: invoice number or null\n"
+    "- netAmount: amount BEFORE tax (excl. VAT) or null\n"
+    "- vatAmount: the tax/VAT amount only, or null\n"
+    "- totalAmount: final amount AFTER tax (incl. VAT) or null\n"
+    'Amount fields: {"amount": number, "currency": "XXX"}.\n'
+    "Copy numbers exactly from the invoice. "
+    "Do NOT add, subtract, or calculate anything."
+)
+
+_FEW_SHOT_INPUT = (
+    "Invoice : VF25.194982\n"
+    "Date : 27-06-25\n"
+    "Qty Description Unit Price Amount in €\n"
+    "1 Ontvangen voorschotten/advance 3.152,38 3.152,38\n"
+    "Total Excl. VAT 3.152,38\n"
+    "21% VAT 662,00\n"
+    "Total Incl. VAT in € 3.814,38"
+)
+
+_FEW_SHOT_OUTPUT = (
+    '{"invoiceDate":"2025-06-27",'
+    '"invoiceReference":"VF25.194982",'
+    '"netAmount":{"amount":3152.38,"currency":"EUR"},'
+    '"vatAmount":{"amount":662.00,"currency":"EUR"},'
+    '"totalAmount":{"amount":3814.38,"currency":"EUR"}}'
+)
+
+_FEW_SHOT_INPUT_2 = (
+    "RECHNUNG\n"
+    "ReNr.: DL2129376\n"
+    "Datum: 18.05.2021\n"
+    "9 items / € 58,50\n"
+    "19% MwSt inkl.: € 9,34\n"
+    "total: € 58,50"
+)
+
+_FEW_SHOT_OUTPUT_2 = (
+    '{"invoiceDate":"2021-05-18",'
+    '"invoiceReference":"DL2129376",'
+    '"netAmount":null,'
+    '"vatAmount":{"amount":9.34,"currency":"EUR"},'
+    '"totalAmount":{"amount":58.50,"currency":"EUR"}}'
 )
 
 
@@ -98,6 +131,21 @@ class LLMExtractor:
             self._model.create_chat_completion(
                 messages=[
                     {"role": "system", "content": _SYSTEM_PROMPT},
+                    {
+                        "role": "user",
+                        "content": f"Extract invoice fields from:\n\n{_FEW_SHOT_INPUT}",
+                    },
+                    {"role": "assistant", "content": _FEW_SHOT_OUTPUT},
+                    {
+                        "role": "user",
+                        "content": (
+                            f"Extract invoice fields from:\n\n{_FEW_SHOT_INPUT_2}"
+                        ),
+                    },
+                    {
+                        "role": "assistant",
+                        "content": _FEW_SHOT_OUTPUT_2,
+                    },
                     {
                         "role": "user",
                         "content": f"Extract invoice fields from:\n\n{text}",
