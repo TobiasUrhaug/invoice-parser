@@ -127,7 +127,7 @@ def test_smart_extractor_uses_ocr_path_for_scanned_pdf() -> None:
     mock_ocr.extract_text.return_value = fake_ocr_text
 
     with patch(
-        "app.services.pdf_extractor.PaddleOCRExtractor",
+        "app.services.pdf_extractor.TesseractOCRExtractor",
         return_value=mock_ocr,
     ):
         extractor = SmartPDFExtractor()
@@ -148,27 +148,48 @@ def test_smart_extractor_propagates_plumber_error() -> None:
             extractor.extract(b"somebytes")
 
 
-# --- PaddleOCRExtractor ---
+# --- TesseractOCRExtractor ---
 
 
-def test_paddle_ocr_extractor_returns_concatenated_text() -> None:
-    from app.services.pdf_extractor import PaddleOCRExtractor
+def test_tesseract_ocr_extractor_returns_concatenated_page_text() -> None:
+    from app.services.pdf_extractor import TesseractOCRExtractor
 
-    mock_image = MagicMock()
-    mock_ocr_instance = MagicMock()
-    mock_ocr_instance.predict.return_value = [{"rec_texts": ["text1", "text2"]}]
+    mock_image_1 = MagicMock()
+    mock_image_2 = MagicMock()
 
-    mock_paddleocr_mod = MagicMock()
-    mock_paddleocr_mod.PaddleOCR = MagicMock(return_value=mock_ocr_instance)
     mock_pdf2image_mod = MagicMock()
-    mock_pdf2image_mod.convert_from_bytes = MagicMock(return_value=[mock_image])
+    mock_pdf2image_mod.convert_from_bytes.return_value = [mock_image_1, mock_image_2]
+
+    mock_pytesseract_mod = MagicMock()
+    mock_pytesseract_mod.image_to_string.side_effect = [
+        "page one text",
+        "page two text",
+    ]
 
     with patch.dict(
         sys.modules,
-        {"paddleocr": mock_paddleocr_mod, "pdf2image": mock_pdf2image_mod},
+        {"pdf2image": mock_pdf2image_mod, "pytesseract": mock_pytesseract_mod},
     ):
-        extractor = PaddleOCRExtractor()
+        extractor = TesseractOCRExtractor()
         result = extractor.extract_text(b"%PDF fake bytes")
 
-    assert "text1" in result
-    assert "text2" in result
+    assert "page one text" in result
+    assert "page two text" in result
+
+
+def test_tesseract_ocr_extractor_returns_empty_string_for_no_pages() -> None:
+    from app.services.pdf_extractor import TesseractOCRExtractor
+
+    mock_pdf2image_mod = MagicMock()
+    mock_pdf2image_mod.convert_from_bytes.return_value = []
+
+    mock_pytesseract_mod = MagicMock()
+
+    with patch.dict(
+        sys.modules,
+        {"pdf2image": mock_pdf2image_mod, "pytesseract": mock_pytesseract_mod},
+    ):
+        extractor = TesseractOCRExtractor()
+        result = extractor.extract_text(b"%PDF fake bytes")
+
+    assert result == ""

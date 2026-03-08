@@ -11,8 +11,7 @@ dependencies = [
     "pdfplumber>=0.11",
     "pdf2image>=1.17",
     "Pillow>=11.0",
-    "paddleocr>=2.9",
-    "paddlepaddle>=3.0",
+    "pytesseract>=0.3",
     "huggingface-hub>=0.26",
     "llama-cpp-python>=0.3",
     "python-dateutil>=2.9",
@@ -39,16 +38,6 @@ select = ["E", "F", "I", "UP"]
 [tool.mypy]
 strict = true
 python_version = "3.12"
-
-[[tool.uv.index]]
-name = "llama-cpp-python-cpu"
-url = "https://abetlen.github.io/llama-cpp-python/whl/cpu"
-explicit = true
-
-[tool.uv.sources]
-llama-cpp-python = [
-    { index = "llama-cpp-python-cpu", marker = "sys_platform == 'linux'" },
-]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

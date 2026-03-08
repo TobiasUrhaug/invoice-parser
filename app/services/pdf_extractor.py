@@ -58,19 +58,13 @@ class PlumberExtractor:
         return self.extract_text_and_page_count(file_bytes)[0]
 
 
-class PaddleOCRExtractor:
+class TesseractOCRExtractor:
     def extract_text(self, file_bytes: bytes) -> str:
-        import numpy as np
-        from paddleocr import PaddleOCR  # type: ignore[import-untyped]
+        import pytesseract  # type: ignore[import-untyped]
         from pdf2image import convert_from_bytes
 
-        ocr = PaddleOCR(use_textline_orientation=True, lang="en")
         images = convert_from_bytes(file_bytes)
-        pages: list[str] = []
-        for image in images:
-            result = ocr.predict(np.array(image))
-            texts: list[str] = result[0]["rec_texts"] if result else []
-            pages.append(" ".join(texts))
+        pages = [pytesseract.image_to_string(image) for image in images]
         return "\n\n".join(pages)
 
 
@@ -90,5 +84,5 @@ class SmartPDFExtractor:
         if _is_text_based(text, page_count, self._min_chars):
             return ExtractionResult(text=text, path="text")
 
-        ocr = PaddleOCRExtractor()
+        ocr = TesseractOCRExtractor()
         return ExtractionResult(text=ocr.extract_text(file_bytes), path="ocr")
