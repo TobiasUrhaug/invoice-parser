@@ -60,6 +60,7 @@ class PlumberExtractor:
 
 class PaddleOCRExtractor:
     def extract_text(self, file_bytes: bytes) -> str:
+        import numpy as np
         from paddleocr import PaddleOCR  # type: ignore[import-untyped]
         from pdf2image import convert_from_bytes
 
@@ -67,11 +68,9 @@ class PaddleOCRExtractor:
         images = convert_from_bytes(file_bytes)
         pages: list[str] = []
         for image in images:
-            result = ocr.ocr(image, cls=True)
-            lines = [
-                word_info[1][0] for line in (result or []) for word_info in (line or [])
-            ]
-            pages.append(" ".join(lines))
+            result = ocr.predict(np.array(image))
+            texts: list[str] = result[0]["rec_texts"] if result else []
+            pages.append(" ".join(texts))
         return "\n\n".join(pages)
 
 

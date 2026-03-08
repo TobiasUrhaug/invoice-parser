@@ -156,9 +156,7 @@ def test_paddle_ocr_extractor_returns_concatenated_text() -> None:
 
     mock_image = MagicMock()
     mock_ocr_instance = MagicMock()
-    mock_ocr_instance.ocr.return_value = [
-        [("bbox", ("text1", 0.99)), ("bbox", ("text2", 0.98))]
-    ]
+    mock_ocr_instance.predict.return_value = [{"rec_texts": ["text1", "text2"]}]
 
     mock_paddleocr_mod = MagicMock()
     mock_paddleocr_mod.PaddleOCR = MagicMock(return_value=mock_ocr_instance)
